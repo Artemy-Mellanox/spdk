@@ -22,8 +22,6 @@ static int nvme_ctrlr_identify_ns_async(struct spdk_nvme_ns *ns);
 static int nvme_ctrlr_identify_ns_iocs_specific_async(struct spdk_nvme_ns *ns);
 static int nvme_ctrlr_identify_id_desc_async(struct spdk_nvme_ns *ns);
 static void nvme_ctrlr_init_cap(struct spdk_nvme_ctrlr *ctrlr);
-static void nvme_ctrlr_set_state(struct spdk_nvme_ctrlr *ctrlr, enum nvme_ctrlr_state state,
-				 uint64_t timeout_in_ms);
 
 static int
 nvme_ns_cmp(struct spdk_nvme_ns *ns1, struct spdk_nvme_ns *ns2)
@@ -1474,7 +1472,7 @@ inf:
 	ctrlr->state_timeout_tsc = NVME_TIMEOUT_INFINITE;
 }
 
-static void
+void
 nvme_ctrlr_set_state(struct spdk_nvme_ctrlr *ctrlr, enum nvme_ctrlr_state state,
 		     uint64_t timeout_in_ms)
 {
@@ -4252,6 +4250,28 @@ nvme_ctrlr_submit_admin_request(struct spdk_nvme_ctrlr *ctrlr,
 	return nvme_qpair_submit_request(ctrlr->adminq, req);
 }
 
+void
+nvme_ctrlr_synch_ns(struct spdk_nvme_ctrlr *ctrlr,
+		    struct spdk_nvme_ctrlr *src_ctrlr)
+{
+	struct spdk_nvme_ns *ns, *src_ns;
+
+	RB_FOREACH(src_ns, nvme_ns_tree, &src_ctrlr->ns) {
+		ns = spdk_nvme_ctrlr_get_ns(ctrlr, src_ns->id);
+		if (ns == NULL) {
+			return;
+		}
+
+		ns->active = true;
+		ns->ctrlr = ctrlr;
+		ns->ana_state = SPDK_NVME_ANA_OPTIMIZED_STATE;
+		ns->nsdata = src_ns->nsdata;
+		nvme_ns_set_identify_data(ns);
+	}
+
+	ctrlr->active_ns_count = src_ctrlr->active_ns_count;
+}
+
 static void
 nvme_keep_alive_completion(void *cb_ctx, const struct spdk_nvme_cpl *cpl)
 {
@@ -5294,3 +5314,4 @@ spdk_nvme_ctrlr_get_memory_domains(const struct spdk_nvme_ctrlr *ctrlr,
 {
 	return nvme_transport_ctrlr_get_memory_domains(ctrlr, domains, array_size);
 }
+
