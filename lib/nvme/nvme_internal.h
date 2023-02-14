@@ -1063,6 +1063,8 @@ struct nvme_driver {
 
 extern struct nvme_driver *g_spdk_nvme_driver;
 
+extern TAILQ_HEAD(spdk_nvme_ctrlr_tailq, spdk_nvme_ctrlr) g_nvme_attached_ctrlrs;
+
 int nvme_driver_init(void);
 
 #define nvme_delay		usleep
