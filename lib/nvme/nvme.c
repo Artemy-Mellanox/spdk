@@ -18,7 +18,7 @@ pid_t			g_spdk_nvme_pid;
 static int g_nvme_driver_timeout_ms = 3 * 60 * 1000;
 
 /* Per-process attached controller list */
-static TAILQ_HEAD(, spdk_nvme_ctrlr) g_nvme_attached_ctrlrs =
+struct spdk_nvme_ctrlr_tailq g_nvme_attached_ctrlrs =
 	TAILQ_HEAD_INITIALIZER(g_nvme_attached_ctrlrs);
 
 /* Returns true if ctrlr should be stored on the multi-process shared_attached_ctrlrs list */
